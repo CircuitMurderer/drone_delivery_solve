@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 pub struct Node {           // save the son and parent idx
     pub data: usize,
@@ -51,8 +51,26 @@ impl Tree {
         })
     }
 
+    pub fn print_tree(&self) {
+        let escape = String::from("");
+        let now_node = self.get_node(&self.root);
+        self.travel_tree(now_node, escape);
+    }
+
+    fn travel_tree(&self, node: &Node, escape: String) {
+        println!("{}{}", &escape, node.data.to_string());
+
+        node.sons.iter().for_each(|son| {
+            self.travel_tree(self.get_node(son), escape.clone() + "\t");
+        })
+    }
+
     pub fn get_node_by_data(&self, data: &usize) -> &Node {
         &self.nodes[self.d_to_n[data]]
+    }
+
+    pub fn data_exist(&self, data: &usize) -> bool {
+        self.d_to_n.contains_key(data)
     }
 
     pub fn insert_node_by_index(&mut self, par_index: usize, data: usize) {

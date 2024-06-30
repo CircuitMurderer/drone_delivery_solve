@@ -2,13 +2,13 @@ use super::graph::{Point, PointRole};
 use rand::{rngs::ThreadRng, seq::IteratorRandom, thread_rng};
 
 #[derive(Clone, Copy)]
-enum Priority {
+pub enum Priority {
     High,
     Mid,
     Low,
 }
 
-enum GenWay {
+pub enum GenWay {
     Every,
     OnlyHigh,
     OnlyMid,

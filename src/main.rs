@@ -1,8 +1,5 @@
 use std::error::Error;
-use solve_drone::solver::solve::{Config, DeliverySolver};
-use solver::tree::Tree;
-
-use crate::solver::graph::{Point, AdjMat, PointRole};
+use crate::solver::{order::OrderGener, solve::{Config, DeliverySolver}, order::GenWay};
 
 mod solver;
 
@@ -19,27 +16,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         r_ids, 
         Config {
             d_speed: 1,
-            d_longest: 20,
-            d_max_carry: 3,
+            d_longest: 20.,
+            d_m_carry: 3,
             gen_duration: 30,
             gen_orders: 3
         }
     );
 
     solver.adj_mat.print_mat();
-    println!("{}, {}", solver.pt_role.is_sender(1), solver.pt_role.is_recver(2));
 
-    let mut tree = Tree::new_with_root(1);
-    tree.insert_node_by_data(&1, 2);
-    tree.insert_node_by_data(&1, 3);
-    tree.insert_node_by_data(&2, 4);
-    tree.insert_node_by_data(&2, 5);
-    tree.insert_node_by_data(&3, 6);
-    tree.insert_node_by_data(&5, 7);
-
-    let path = tree.get_path();
-    println!("{:?}", path);
-    println!("{:?}", solver.nearest_sender);
+    let mut order_gener = OrderGener::new(solver.pt_role.clone());
+    for _ in 0..6 {
+        let orders = order_gener.gen(6, GenWay::OnlyHigh);
+        let sols = solver.prog_per_orders(orders);
+        for sol in sols.iter() {
+            println!("Min cost: {}", sol.all_dist);
+            println!("Route: {:?}", sol.route);
+        }
+    }
 
     Ok(())
 }

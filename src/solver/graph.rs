@@ -12,6 +12,7 @@ pub struct AdjMat {
     pub points: Vec<Point>,
 }
 
+#[derive(Clone)]
 pub struct PointRole {
     pub senders: HashSet<usize>,
     pub recvers: HashSet<usize>,

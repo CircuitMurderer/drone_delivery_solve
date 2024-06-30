@@ -2,20 +2,27 @@ use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use itertools::Itertools;
 use ordered_float::{self, OrderedFloat};
 
-use super::{graph::{AdjMat, Edge, Point, PointRole}, order::Order, tree::Tree};
+use super::{graph::{AdjMat, Edge, Point, PointRole}, order::{pri_to_num, Order, Priority}, tree::Tree};
 
+#[derive(Clone, Copy)]
 pub struct Config {
     pub d_speed: i32,       // km per min: 1
-    pub d_longest: i32,     // longest fly dist: 20
-    pub d_max_carry: i32,       // max carry, I set it to 3
+    pub d_m_carry: i32,       // max carry, I set it to 3
+    pub d_longest: f64,     // longest fly dist: 20
 
     pub gen_duration: i32,  // duration between gen, I set it to 30(min)
     pub gen_orders: i32,    // gen orders' number, I set it to 3
 }
 
+#[derive(Clone, Copy)]
 pub struct SolveInfo {
-    pub d_dist: OrderedFloat<f64>,
+    pub d_dist: f64,
     pub d_carry: i32,
+}
+
+pub struct Solution {
+    pub all_dist: f64,
+    pub route: Vec<usize>,
 }
 
 pub struct DeliverySolver {
@@ -64,6 +71,19 @@ impl DeliverySolver {
         nearest_sender
     }
 
+    fn can_be_chosen(&self, root: usize, pre_pt: usize, this_pt: usize, pri: Priority, info: SolveInfo) -> bool {
+        let this_to_near = OrderedFloat(self.adj_mat.get_dist(this_pt, self.nearest_sender[&this_pt]));
+        let this_to_pre = OrderedFloat(self.adj_mat.get_dist(this_pt, pre_pt));
+        let this_to_root = OrderedFloat(self.adj_mat.get_dist(this_pt, root));
+        let time_passed = ((this_to_pre + info.d_dist) / OrderedFloat(self.config.d_speed as f64)).ceil() as i32;
+
+        if this_to_pre + this_to_root > this_to_near * 2. { false }                     // not a good choice
+        else if this_to_pre + this_to_root > OrderedFloat(self.config.d_longest) { false }     // exceed longest dist
+        else if time_passed > pri_to_num(pri) { false }                                 // cannot satisfy priority
+        else if info.d_carry >= self.config.d_m_carry { false }                                // no carry
+        else { true }
+    }
+
     pub fn get_sorted_orders(&self, orders: Vec<Order>) -> Vec<Order> {
         orders
             .into_iter()
@@ -90,35 +110,114 @@ impl DeliverySolver {
             }).collect::<Vec<_>>()
     }
 
-    pub fn build_limited_mst(&self, root: usize, recvers: HashSet<usize>, conf: Config) {
-        let tree = Tree::new_with_root(root);
-        let left_recvs = recvers.clone();
+    pub fn build_mst_path(&self, root: usize, recvers: &HashSet<usize>) -> Vec<usize> {
+        let mut tree = Tree::new_with_root(root);
+        let mut left_recvs = recvers.clone();
 
         let root_edges = self.adj_mat.get_edges(root, &left_recvs);
         let mut edge_queue: BinaryHeap<Edge> = BinaryHeap::from(root_edges);
 
-        let mut info = SolveInfo { d_dist: OrderedFloat(0.), d_carry: 0 };
         while !left_recvs.is_empty() {
-            let edge = edge_queue.pop();
+            let edge = edge_queue.pop().unwrap();
+            if tree.data_exist(&edge.link_to) { continue; }
+            tree.insert_node_by_data(&edge.linker, edge.link_to);
             
+            left_recvs.remove(&edge.link_to);
+            // edge_queue.retain(|e| e.link_to == edge.link_to);
+            edge_queue.extend(self.adj_mat.get_edges(edge.link_to, &left_recvs));
         }
+
+        tree.get_path()
     }
 
-    pub fn prog_per_orders(&self, orders: Vec<Order>) {  //directly solve the 1st pris' orders
+    pub fn prog_per_orders(&self, orders: Vec<Order>) -> Vec<Solution> {  //directly solve the 1st pris' orders
         let sorted_orders = self.get_sorted_orders(orders);
-        let recvers = sorted_orders
+        let mut recv_orders: HashMap<usize, Vec<usize>> = HashMap::new();
+        sorted_orders
             .iter()
-            .map(|it| it.owned)
-            .collect::<HashSet<_>>();
-        let mut edges: BinaryHeap<Edge> = BinaryHeap::new();
+            .enumerate()
+            .for_each(|(i, order)| {
+                if !recv_orders.contains_key(&order.owned) {
+                    recv_orders.insert(order.owned, vec![i]);
+                } else {
+                    recv_orders
+                        .get_mut(&order.owned)
+                        .unwrap()
+                        .push(i);
+                }
+            });
+        
+        // let mut orders_deque = sorted_orders
+        //     .into_iter()
+        //     .collect::<VecDeque<_>>();
+        let mut handled: Vec<bool> = vec![false; sorted_orders.len()];
+        let mut solutions: Vec<Solution> = Vec::with_capacity(sorted_orders.len());
+ 
+        for (i, order) in sorted_orders.iter().enumerate() {
 
-        let orders_deque = VecDeque::from(sorted_orders);
-        while !orders_deque.is_empty() {
+            if handled[i] { continue; }
 
+            let mut info = SolveInfo { d_dist: 0., d_carry: 0 };
+            let root = self.nearest_sender[&order.owned];
+            let recvers = recv_orders
+                .keys()
+                .cloned()
+                .collect::<HashSet<_>>();
+
+            let mst_path = self.build_mst_path(
+                root,
+                &recvers
+            );
+            
+            let mut real_path: VecDeque<usize> = VecDeque::new();
+            for pt in mst_path.iter() {
+                if real_path.is_empty() {
+                    real_path.push_back(*pt);
+                    continue;
+                } 
+
+                let last_pt = real_path.back().unwrap();
+                if self.can_be_chosen(root, *last_pt, *pt, order.pri, info) {
+                    let to_hand = 
+                        recv_orders[&order.owned]
+                        .len()
+                        .min(
+                            (self.config.d_m_carry - info.d_carry)
+                                .abs()
+                                as usize
+                        );
+
+                    (0..to_hand).for_each(|_| {
+                        let order_i = recv_orders
+                            .get_mut(&order.owned)
+                            .unwrap()
+                            .pop()
+                            .unwrap();
+                        handled[order_i] = true;
+                    });
+
+                    info.d_carry += to_hand as i32;
+                    info.d_dist += self.adj_mat.get_dist(*last_pt, *pt);
+                    real_path.push_back(*pt);
+                }
+            }
+
+            info.d_dist += self
+                .adj_mat
+                .get_dist(
+                    *real_path
+                        .back()
+                        .unwrap(), 
+                    root
+                );
+            real_path.push_back(root);
+
+            solutions.push(Solution { 
+                all_dist: info.d_dist, 
+                route: real_path.into_iter().collect_vec()
+            });
         }
 
-        
+        solutions
     }
-
-    
 }
