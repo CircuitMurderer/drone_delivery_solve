@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 pub struct Node {           // save the son and parent idx
     pub data: usize,
@@ -51,7 +51,7 @@ impl Tree {
         })
     }
 
-    pub fn insert_node_as_son(&mut self, parent: &Node, data: usize) {
+    pub fn insert_node(&mut self, parent: &Node, data: usize) {
         let last_index = self.nodes.len().to_owned();
 
         let new_node = Node {
@@ -66,8 +66,27 @@ impl Tree {
         self.nodes.push(new_node);
     }
 
+    pub fn insert_node_by_index(&mut self, par_index: usize, data: usize) {
+        let last_index = self.nodes.len().to_owned();
+
+        let new_node = Node {
+            data: data,
+            index: last_index,
+            parent: par_index,
+            sons: Vec::new(),
+        };
+
+        self.nodes[par_index].sons.push(last_index);
+        self.d_to_n.insert(data, last_index);
+        self.nodes.push(new_node);
+    }
+
     pub fn get_node_by_data(&self, data: &usize) -> &Node {
         &self.nodes[self.d_to_n[data]]
+    }
+
+    pub fn insert_node_by_data(&mut self, data_par: &usize, data_son: usize) {
+        self.insert_node_by_index(self.d_to_n[data_par], data_son);
     }
 }
 

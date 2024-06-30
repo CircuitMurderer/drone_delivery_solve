@@ -105,7 +105,12 @@ impl Orders {
     }
 
     pub fn add_orders(&mut self, orders: Vec<Order>) {
-        self.owners.extend(orders.iter().map(|it| it.owned).collect::<Vec<_>>());
+        self.owners.extend(
+            orders
+                .iter()
+                .map(|it| it.owned)
+                .collect::<Vec<_>>()
+        );
         self.orders.extend(orders);
     }
 

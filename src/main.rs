@@ -1,4 +1,6 @@
 use std::error::Error;
+use solver::tree::Tree;
+
 use crate::solver::graph::{Point, AdjMat, PointRole};
 
 mod solver;
@@ -14,6 +16,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     adj_mat.print_dist();
     println!("{}, {}", pt_role.is_sender(1), pt_role.is_recver(2));
+
+    let mut tree = Tree::new_with_root(1);
+    tree.insert_node_by_data(&1, 2);
+    tree.insert_node_by_data(&1, 3);
+    tree.insert_node_by_data(&2, 4);
+    tree.insert_node_by_data(&2, 5);
+    tree.insert_node_by_data(&3, 6);
+
+    let path = tree.get_path();
+    println!("{:?}", path);
 
     Ok(())
 }
