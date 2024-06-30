@@ -15,18 +15,14 @@ enum GenWay {
     OnlyLow,
 }
 
-fn pri_to_num(pri: Priority) -> i32 {
-    match pri {
-        Priority::High => 30,
-        Priority::Mid => 90,
-        Priority::Low => 180,
-    }
-}
-
 #[derive(Clone, Copy)]
 pub struct Order {
     pub pri: Priority,       // unit: minute, 30: 1st | 90: 2nd | 180: 3rd
     pub owned: usize,   // the order hold by which point
+}
+
+pub struct OrderWithDist {
+    pub pri: Priority,
 }
 
 pub struct OrderGener {
@@ -37,6 +33,14 @@ pub struct OrderGener {
 pub struct Orders {
     pub orders: Vec<Order>,
     pub owners: Vec<usize>,
+}
+
+pub fn pri_to_num(pri: Priority) -> i32 {
+    match pri {
+        Priority::High => 30,
+        Priority::Mid => 90,
+        Priority::Low => 180,
+    }
 }
 
 impl OrderGener {

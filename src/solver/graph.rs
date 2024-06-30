@@ -48,6 +48,10 @@ impl AdjMat {
         ).collect::<Vec<_>>()
     }
 
+    pub fn get_dist(&self, pt_a: usize, pt_b: usize) -> f64 {
+        self.dist[pt_a][pt_b]
+    }
+
     pub fn print_dist(&self) {
         self.dist.iter().for_each(|its| {
             its.iter().for_each(|it| {
