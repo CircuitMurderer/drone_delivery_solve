@@ -1,5 +1,5 @@
 use std::error::Error;
-use solve_drone::solver::solve::DeliverySolver;
+use solve_drone::solver::solve::{Config, DeliverySolver};
 use solver::tree::Tree;
 
 use crate::solver::graph::{Point, AdjMat, PointRole};
@@ -13,9 +13,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     let s_ids = vec![1, 4, 7];
     let r_ids = vec![0, 2, 3, 5, 6, 8];
 
-    let solver = DeliverySolver::new(point_datas, s_ids, r_ids);
+    let solver = DeliverySolver::new(
+        point_datas, 
+        s_ids, 
+        r_ids, 
+        Config {
+            d_speed: 1,
+            d_longest: 20,
+            d_max_carry: 3,
+            gen_duration: 30,
+            gen_orders: 3
+        }
+    );
 
-    solver.adj_mat.print_dist();
+    solver.adj_mat.print_mat();
     println!("{}, {}", solver.pt_role.is_sender(1), solver.pt_role.is_recver(2));
 
     let mut tree = Tree::new_with_root(1);

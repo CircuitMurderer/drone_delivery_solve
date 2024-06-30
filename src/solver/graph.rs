@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use ordered_float::OrderedFloat;
+
 pub struct Point {
     pub x: i32,
     pub y: i32,
@@ -13,6 +15,25 @@ pub struct AdjMat {
 pub struct PointRole {
     pub senders: HashSet<usize>,
     pub recvers: HashSet<usize>,
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub struct Edge {
+    pub linker: usize,
+    pub link_to: usize,
+    pub dist: OrderedFloat<f64>,
+}
+
+impl Ord for Edge {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other.dist.cmp(&self.dist)
+    }
+}
+
+impl PartialOrd for Edge {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Point {
@@ -52,7 +73,23 @@ impl AdjMat {
         self.dist[pt_a][pt_b]
     }
 
-    pub fn print_dist(&self) {
+    pub fn get_edges(&self, pt: usize, other_pts: &HashSet<usize>) -> Vec<Edge> {
+        let mut edges: Vec<Edge> = Vec::new();
+
+        self.dist[pt].iter().enumerate().for_each(|(p, d)| {
+            if p != pt && other_pts.contains(&p) {
+                edges.push(Edge { 
+                    linker: pt, 
+                    link_to: p, 
+                    dist: OrderedFloat(*d)
+                })
+            }
+        });
+
+        edges
+    }
+
+    pub fn print_mat(&self) {
         self.dist.iter().for_each(|its| {
             its.iter().for_each(|it| {
                 print!("{:.4} ", it);
