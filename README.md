@@ -1,6 +1,14 @@
 # Drone Delivery Problem
 高级算法大作业：无人机配送问题
 
+## TL;DR
+运行：
+```shell
+git clone https://github.com/CircuitMurderer/drone_delivery_solve.git
+cd drone_delivery_solve
+cargo run
+```
+
 ## Problem Intro
 无人机可以快速解决最后10公里的配送，本作业要求设计一个算法，实现一个特定区域内的无人机配送问题的路径规划。
 
@@ -58,4 +66,90 @@ $$dist = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$$
 
 但我们可以这样考虑：假如每架无人机按照此问题的最优解进行配送，那么其走过的轨迹上所有的点（配货点）和起点（配送中心）构成的图的TSP回路就是其最优路径。所以理论上来说，我们可以通过穷举所有组合，并一一检查合理的节点组合，单独地对每个组合求其TSP回路，并进行比较，获得精确的最优解。但这样做的复杂度非常高，光是穷举就需要 $O(n!)$ 的时间复杂度，更别提计算了。
 
-我们来换个思路。因为我们的系统是，每当一个批次的订单到来时，进行规划
+我们来换个思路：采用近似算法和缩减法。假设系统在某一个时间点要处理一些订单，则我们可以分别以每个配送中心为出发点、所有的持有订单的配货点作为其他节点作为一个图，来解求一条近似最优的TSP回路。这里考虑：
+- 对于配送中心来说，这几条回路就是一次性配送所有订单的较优解；
+- 但对于持有订单的配货点而言，它的最优解是直接从最近的配送中心出发，到达配货点再返回。
+
+所以：
+- 如果贸然取配送中心的几个TSP回路，则必然有更好的解，因为不是所有的配货点都必须等待一次性配送；
+- 如果直接取配货点的最短回路，则不能保证其全局最优性，因为没有考虑到配送点之间的距离。
+
+那么我们的算法怎么做？很简单：
+1. 首先求得每个配送中心到所有有订单的配货点的TSP回路；
+2. 选择一个未配送订单，然后选择此订单持有者（配货点）的最近配送中心对应的回路；
+3. 遍历此回路的每个节点，如果节点有更优解（直接到配送中心）或不满足要求，删除此节点；
+4. 将上述路径中的节点所持有的订单标记为已配送；
+5. 回到2，重复，直至所有的订单都已得到配送。
+
+具体算法设计请见下一小节。因为我们选的是距离配货点最近的配送中心，即在其回路中可以较快遍历到此配货点，可以保证解较优；同时，在遍历回路时，若某节点有更优解，则舍弃路径中的此节点，使其在别的更优回路或是自己对应的最优回路被选择，确保得到更好的解。结束后，算法会输出一系列的路径，其数量小于等于待处理的订单数量。
+
+关于调度，因为即使是最优的订单都有30分钟的等待时间，而无人机受限于速度和最大距离，最多只能飞20分钟。为了确保每个订单都能送达，我们设每个配货点到配送中心的距离都不大于10km以保证无人机可送达。我们的假定是每30分钟生成一次订单，所以一定可以在下一次生成订单前配送完毕所有优先级最高的订单。那么对于调度的设计就简单了，只需在每个时间片仅处理优先级最高的订单，然后在下一个时间片将上一个时间片的其他优先级的订单优先级集体提高一级即可。最后一个时间片会将
+
+### Design
+首先是通过最小生成树来近似求解最优回路，使用Prim算法：
+```
+Algo 1: get loops use MST
+-------------------------
+$senders <- distribution centres 
+$receivers <- distribution points with orders
+$loops = empty
+for $sender in $senders do
+    $graph <- build graph by $sender and $receivers
+    $mst <- Prim($graph) to generate MST, with root $sender
+    $loop <- prior-order traversal $mst
+    $loop.add($sender)
+    $loops.add($loop)
+endfor
+return $loops
+```
+以上就通过近似算法求得了每个配送中心对应的最小回路。设每个图的总节点数为n、配送中心数量为m，因为使用Prim算法获得最小生成树的时间复杂度是 $O(n^2)$ ，所以此算法的整体时间复杂度为 $O(mn^2)$ 。
+
+接下来是根据限制条件缩减回路的算法：
+```
+Algo 2: reduce and limit loops
+------------------------------
+$drone <- drone configs
+$loops <- loops solved by Algo 1
+$orders <- orders to handle
+$paths <- empty
+for $order in $orders do
+    continue if $order is handled
+    $sender <- nearest sender of $order.owner
+    $path <- $loops[$sender]
+    for $x in $path do
+        continue if $x is $sender
+        if $x.order.priority is not satisfied then
+            delete $x
+        endif
+        if distance($x.previous to $x to $sender) > 2 * (distance($x to $x's nearest sender)) then
+            delete $x
+        endif 
+        if distance($x.previous to $x to $sender) > $drone's max fly distance then
+            delete $x
+        endif
+        if $drone.carry == $drone's max carry then
+            delete $x
+        endif
+        set $x.order to handled
+    endfor
+    $paths.add($path)
+endfor
+return $paths
+```
+以上即可通过约束条件来缩减回路，最后得到一系列较优的解。其中，设系统每批次生成k个订单，每个图总节点数为n，则总的时间复杂度为 $O(kn)$ 。
+
+最后是调度算法：
+```
+Algo 3: schedule
+----------------
+$list <- list including high, mid and low priority orders
+for $time in time slices do
+    $list <- generate some random orders inner
+    if $time is last time slice do
+        set all orders' priority in $list to high-pri
+    endif
+    handle orders in $list's high-pri list
+    $list's mid-pri and low-pri priority increase one level
+endfor
+```
+

@@ -8,7 +8,6 @@ pub enum Priority {
     Low,
 }
 
-#[warn(unused_imports)]
 pub enum GenWay {
     Every,
     OnlyHigh,
