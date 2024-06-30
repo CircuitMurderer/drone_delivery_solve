@@ -147,14 +147,10 @@ impl DeliverySolver {
                 }
             });
         
-        // let mut orders_deque = sorted_orders
-        //     .into_iter()
-        //     .collect::<VecDeque<_>>();
         let mut handled: Vec<bool> = vec![false; sorted_orders.len()];
         let mut solutions: Vec<Solution> = Vec::with_capacity(sorted_orders.len());
  
         for (i, order) in sorted_orders.iter().enumerate() {
-
             if handled[i] { continue; }
 
             let mut info = SolveInfo { d_dist: 0., d_carry: 0 };

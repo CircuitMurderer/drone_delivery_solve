@@ -24,14 +24,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     solver.adj_mat.print_mat();
+    
 
     let mut order_gener = OrderGener::new(solver.pt_role.clone());
     for _ in 0..6 {
         let orders = order_gener.gen(6, GenWay::OnlyHigh);
         let sols = solver.prog_per_orders(orders);
         for sol in sols.iter() {
-            println!("Min cost: {}", sol.all_dist);
-            println!("Route: {:?}", sol.route);
+            println!("Min cost: {}; Route: {:?}", sol.all_dist, sol.route);
         }
     }
 

@@ -1,4 +1,4 @@
-use super::graph::{Point, PointRole};
+use super::graph::PointRole;
 use rand::{rngs::ThreadRng, seq::IteratorRandom, thread_rng};
 
 #[derive(Clone, Copy)]
@@ -21,18 +21,9 @@ pub struct Order {
     pub owned: usize,   // the order hold by which point
 }
 
-pub struct OrderWithDist {
-    pub pri: Priority,
-}
-
 pub struct OrderGener {
     pub pt_role: PointRole,
     pub rng: ThreadRng,
-}
-
-pub struct Orders {
-    pub orders: Vec<Order>,
-    pub owners: Vec<usize>,
 }
 
 pub fn pri_to_num(pri: Priority) -> i32 {
@@ -96,28 +87,5 @@ impl OrderGener {
             }).collect::<Vec<_>>(),
         }
     }
-}
-
-impl Orders {
-    pub fn new() -> Self {
-        Self { orders: Vec::new(), owners: Vec::new() }
-    }
-
-    pub fn add_order(&mut self, order: Order) {
-        self.owners.push(order.owned.to_owned());
-        self.orders.push(order);
-    }
-
-    pub fn add_orders(&mut self, orders: Vec<Order>) {
-        self.owners.extend(
-            orders
-                .iter()
-                .map(|it| it.owned)
-                .collect::<Vec<_>>()
-        );
-        self.orders.extend(orders);
-    }
-
-
 }
 
