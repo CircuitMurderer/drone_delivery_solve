@@ -51,10 +51,6 @@ impl Tree {
         })
     }
 
-    pub fn get_node_by_data(&self, data: &usize) -> &Node {
-        &self.nodes[self.d_to_n[data]]
-    }
-
     pub fn data_exist(&self, data: &usize) -> bool {
         self.d_to_n.contains_key(data)
     }
@@ -72,10 +68,6 @@ impl Tree {
         self.nodes[par_index].sons.push(last_index);
         self.d_to_n.insert(data, last_index);
         self.nodes.push(new_node);
-    }
-
-    pub fn insert_node_by_node(&mut self, parent: &Node, data: usize) {
-        self.insert_node_by_index(parent.index, data);
     }
 
     pub fn insert_node_by_data(&mut self, data_par: &usize, data_son: usize) {

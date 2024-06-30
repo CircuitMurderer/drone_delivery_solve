@@ -1,17 +1,14 @@
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use itertools::Itertools;
-use ordered_float::{self, OrderedFloat};
+use ordered_float::OrderedFloat;
 
-use super::{graph::{AdjMat, Edge, Point, PointRole}, order::{pri_to_num, Order, Priority}, tree::Tree};
+use super::{graph::{AdjMat, Edge, Point, PointRole}, order::{pri_to_num, print_orders, Order, Priority}, tree::Tree};
 
 #[derive(Clone, Copy)]
 pub struct Config {
-    pub d_speed: i32,       // km per min: 1
-    pub d_m_carry: i32,       // max carry, I set it to 3
-    pub d_longest: f64,     // longest fly dist: 20
-
-    pub gen_duration: i32,  // duration between gen, I set it to 30(min)
-    pub gen_orders: i32,    // gen orders' number, I set it to 3
+    pub d_speed: i32,       
+    pub d_m_carry: i32,       
+    pub d_longest: f64,     
 }
 
 #[derive(Clone, Copy)]
@@ -34,12 +31,15 @@ pub struct DeliverySolver {
 }
 
 impl DeliverySolver {
-    pub fn new(data: Vec<(i32, i32)>, s_ids: Vec<usize>, r_ids: Vec<usize>, conf: Config) -> Self {
+    pub fn new(data: Vec<(i32, i32)>, s_ids: &Vec<usize>, r_ids: &Vec<usize>, conf: Config) -> Self {
         let points = Point::new_from(data);
         let adj_mat = AdjMat::new(points);
-        let pt_role = PointRole::new(s_ids, r_ids);
-        let nearest_sender = DeliverySolver::init_near_map(&adj_mat, &pt_role);
+        let pt_role = PointRole::new(
+            s_ids.to_owned(), 
+            r_ids.to_owned()
+        );
 
+        let nearest_sender = DeliverySolver::init_near_map(&adj_mat, &pt_role);
         Self { adj_mat: adj_mat, pt_role: pt_role, config: conf, nearest_sender: nearest_sender }
     }
 
@@ -77,10 +77,10 @@ impl DeliverySolver {
         let this_to_root = OrderedFloat(self.adj_mat.get_dist(this_pt, root));
         let time_passed = ((this_to_pre + info.d_dist) / OrderedFloat(self.config.d_speed as f64)).ceil() as i32;
 
-        if this_to_pre + this_to_root > this_to_near * 2. { false }                     // not a good choice
-        else if this_to_pre + this_to_root > OrderedFloat(self.config.d_longest) { false }     // exceed longest dist
-        else if time_passed > pri_to_num(pri) { false }                                 // cannot satisfy priority
-        else if info.d_carry >= self.config.d_m_carry { false }                                // no carry
+        if this_to_pre + this_to_root > this_to_near * 2. { false }                             // not a good choice
+        else if this_to_pre + this_to_root > OrderedFloat(self.config.d_longest) { false }      // exceed longest dist
+        else if time_passed > pri_to_num(pri) { false }                                         // cannot satisfy priority
+        else if info.d_carry >= self.config.d_m_carry { false }                                 // no carry
         else { true }
     }
 
@@ -130,8 +130,11 @@ impl DeliverySolver {
         tree.get_path()
     }
 
-    pub fn prog_per_orders(&self, orders: Vec<Order>) -> Vec<Solution> {  //directly solve the 1st pris' orders
-        let sorted_orders = self.get_sorted_orders(orders);
+    pub fn prog_per_orders(&self, orders: &Vec<Order>) -> Vec<Solution> {  //directly solve the 1st pris' orders
+        let c_orders = orders.clone();
+        let sorted_orders = self.get_sorted_orders(c_orders);
+        print_orders(&sorted_orders, "Sorted high-pri orders: ");
+
         let mut recv_orders: HashMap<usize, Vec<usize>> = HashMap::new();
         sorted_orders
             .iter()
@@ -174,8 +177,10 @@ impl DeliverySolver {
 
                 let last_pt = real_path.back().unwrap();
                 if self.can_be_chosen(root, *last_pt, *pt, order.pri, info) {
+                    if recv_orders[pt].is_empty() { continue; }
+
                     let to_hand = 
-                        recv_orders[&order.owned]
+                        recv_orders[pt]
                         .len()
                         .min(
                             (self.config.d_m_carry - info.d_carry)
@@ -185,10 +190,11 @@ impl DeliverySolver {
 
                     (0..to_hand).for_each(|_| {
                         let order_i = recv_orders
-                            .get_mut(&order.owned)
+                            .get_mut(pt)
                             .unwrap()
                             .pop()
                             .unwrap();
+
                         handled[order_i] = true;
                     });
 

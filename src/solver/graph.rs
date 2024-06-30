@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-
 use ordered_float::OrderedFloat;
 
 pub struct Point {
@@ -91,6 +90,7 @@ impl AdjMat {
     }
 
     pub fn print_mat(&self) {
+        println!("======\nAdjMat:");
         self.dist.iter().for_each(|its| {
             its.iter().for_each(|it| {
                 print!("{:.4} ", it);
@@ -106,14 +106,6 @@ impl PointRole {
             senders: s_ids.into_iter().collect::<HashSet<_>>(), 
             recvers: r_ids.into_iter().collect::<HashSet<_>>()
         }
-    }
-
-    pub fn is_sender(&self, id: usize) -> bool { 
-        self.senders.contains(&id)
-    }
-
-    pub fn is_recver(&self, id: usize) -> bool { 
-        self.recvers.contains(&id)
     }
 }
 
