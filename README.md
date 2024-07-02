@@ -83,7 +83,7 @@ $$dist = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$$
 
 具体算法设计请见下一小节。因为我们选的是距离配货点最近的配送中心，即在其回路中可以较快遍历到此配货点，可以保证解较优；同时，在遍历回路时，若某节点有更优解，则舍弃路径中的此节点，使其在别的更优回路或是自己对应的最优回路被选择，确保得到更好的解。结束后，算法会输出一系列的路径，其数量小于等于待处理的订单数量。
 
-关于调度，因为即使是最优的订单都有30分钟的等待时间，而无人机受限于速度和最大距离，最多只能飞20分钟。为了确保每个订单都能送达，我们设每个配货点到配送中心的距离都不大于10km以保证无人机可送达。我们的假定是每30分钟生成一次订单，所以一定可以在下一次生成订单前配送完毕所有优先级最高的订单。那么对于调度的设计就简单了，只需在每个时间片仅处理优先级最高的订单，然后在下一个时间片将上一个时间片的其他优先级的订单优先级集体提高一级即可。最后一个时间片会将
+关于调度，因为即使是最优的订单都有30分钟的等待时间，而无人机受限于速度和最大距离，最多只能飞20分钟。为了确保每个订单都能送达，我们设每个配货点到配送中心的距离都不大于10km以保证无人机可送达。我们的假定是每30分钟生成一次订单，所以一定可以在下一次生成订单前配送完毕所有优先级最高的订单。那么对于调度的设计就简单了，只需在每个时间片仅处理优先级最高的订单，然后在下一个时间片将上一个时间片的其他优先级的订单优先级集体提高一级即可。最后一个时间片会处理所有的未处理订单。
 
 ### Design
 首先是通过最小生成树来近似求解最优回路，使用Prim算法：
@@ -151,5 +151,79 @@ for $time in time slices do
     handle orders in $list's high-pri list
     $list's mid-pri and low-pri priority increase one level
 endfor
+```
+
+### Result
+程序运行结果（订单随机生成）：
+```
+======
+AdjMat:
+0.0000 4.4721 5.0990 6.0828 7.6158 7.6158 6.3246 6.4031 11.3137 
+4.4721 0.0000 4.2426 2.2361 5.0990 3.1623 4.4721 2.2361 7.2111 
+5.0990 4.2426 0.0000 6.4031 2.8284 6.3246 1.4142 4.1231 7.6158 
+6.0828 2.2361 6.4031 0.0000 6.7082 2.2361 6.4031 3.1623 7.2801 
+7.6158 5.0990 2.8284 6.7082 0.0000 5.6569 1.4142 3.6056 5.0990 
+7.6158 3.1623 6.3246 2.2361 5.6569 0.0000 5.8310 2.2361 5.0990 
+6.3246 4.4721 1.4142 6.4031 1.4142 5.8310 0.0000 3.6056 6.3246 
+6.4031 2.2361 4.1231 3.1623 3.6056 2.2361 3.6056 0.0000 5.0000 
+11.3137 7.2111 7.6158 7.2801 5.0990 5.0990 6.3246 5.0000 0.0000 
+======
+Time slice 1
+Orders: 6 Mid 3 Low 8 Low 0 High 2 Mid 5 Low 
+High-pri orders: 0 High 
+Sorted high-pri orders: 0 High 
+Min cost: 8.9443; Route: [1, 0, 1]
+Total min cost: 8.9443
+======
+Time slice 2
+Orders: 6 Mid 3 Low 8 Mid 0 High 2 Mid 5 High 
+High-pri orders: 6 High 2 High 0 High 5 High 
+Sorted high-pri orders: 6 High 5 High 2 High 0 High 
+Min cost: 5.6569; Route: [4, 6, 2, 4]
+Min cost: 4.4721; Route: [7, 5, 7]
+Min cost: 8.9443; Route: [1, 0, 1]
+Total min cost: 19.0733
+======
+Time slice 3
+Orders: 6 Low 3 High 8 Low 0 Mid 2 Low 5 Mid 
+High-pri orders: 3 High 8 High 5 High 6 High 8 High 2 High 3 High 
+Sorted high-pri orders: 6 High 3 High 5 High 3 High 2 High 8 High 8 High 
+Min cost: 5.6569; Route: [4, 6, 2, 4]
+Min cost: 4.4721; Route: [1, 3, 1]
+Min cost: 4.4721; Route: [7, 5, 7]
+Min cost: 10.0000; Route: [7, 8, 7]
+Total min cost: 24.6011
+======
+Time slice 4
+Orders: 6 Low 3 Mid 8 High 0 High 2 Low 5 High 
+High-pri orders: 3 High 0 High 5 High 8 High 0 High 5 High 
+Sorted high-pri orders: 3 High 5 High 5 High 0 High 0 High 8 High 
+Min cost: 4.4721; Route: [1, 3, 1]
+Min cost: 4.4721; Route: [7, 5, 7]
+Min cost: 8.9443; Route: [1, 0, 1]
+Min cost: 10.0000; Route: [7, 8, 7]
+Total min cost: 27.8885
+======
+Time slice 5
+Orders: 6 Low 3 Low 8 Mid 0 Low 2 Mid 5 High 
+High-pri orders: 6 High 8 High 2 High 3 High 5 High 
+Sorted high-pri orders: 6 High 3 High 5 High 2 High 8 High 
+Min cost: 5.6569; Route: [4, 6, 2, 4]
+Min cost: 4.4721; Route: [1, 3, 1]
+Min cost: 4.4721; Route: [7, 5, 7]
+Min cost: 10.0000; Route: [7, 8, 7]
+Total min cost: 24.6011
+======
+Time slice 6
+Orders: 6 High 3 Mid 8 Low 0 Mid 2 Mid 5 High 
+High-pri orders: 6 High 2 High 8 High 2 High 6 High 5 High 6 High 3 High 0 High 3 High 0 High 2 High 8 High 
+Sorted high-pri orders: 6 High 6 High 6 High 5 High 3 High 3 High 2 High 2 High 2 High 0 High 0 High 8 High 8 High 
+Min cost: 2.8284; Route: [4, 6, 4]
+Min cost: 4.4721; Route: [7, 5, 7]
+Min cost: 4.4721; Route: [1, 3, 1]
+Min cost: 5.6569; Route: [4, 2, 4]
+Min cost: 8.9443; Route: [1, 0, 1]
+Min cost: 10.0000; Route: [7, 8, 7]
+Total min cost: 36.3738
 ```
 
