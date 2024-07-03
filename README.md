@@ -2,6 +2,9 @@
 高级算法大作业：无人机配送问题
 
 ## TL;DR
+环境：
+Rust 1.78.0
+
 运行：
 ```shell
 git clone https://github.com/CircuitMurderer/drone_delivery_solve.git
@@ -64,7 +67,7 @@ $$dist = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$$
 - 每架无人机有最远距离和携带物品限制；
 - 每个订单有优先级和时间限制。
 
-但我们可以这样考虑：假如每架无人机按照此问题的最优解进行配送，那么其走过的轨迹上所有的点（配货点）和起点（配送中心）构成的图的TSP回路就是其最优路径。所以理论上来说，我们可以通过穷举所有组合，并一一检查合理的节点组合，单独地对每个组合求其TSP回路，并进行比较，获得精确的最优解。但这样做的复杂度非常高，光是穷举就需要 $O(n!)$ 的时间复杂度，更别提计算了。
+但我们可以这样考虑：假如每架无人机按照此问题的最优解进行配送，那么其走过的轨迹上所有的点（配货点）和起点（配送中心）构成的图的TSP回路就是其最优路径。所以理论上来说，我们可以通过穷举所有组合，并一一检查合理的节点组合，单独地对每个组合求其TSP回路，并进行比较，获得精确的最优解。但这样做的复杂度非常高，光是穷举就需要 $O(n!)$ 的时间复杂度，而计算和比较又要消耗额外的时间，所以穷举法虽可得到精确解，但基本上不可行。
 
 我们来换个思路：采用近似算法和缩减法。假设系统在某一个时间点要处理一些订单，则我们可以分别以每个配送中心为出发点、所有的持有订单的配货点作为其他节点作为一个图，来解求一条近似最优的TSP回路。这里考虑：
 - 对于配送中心来说，这几条回路就是一次性配送所有订单的较优解；
@@ -72,85 +75,98 @@ $$dist = \sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$$
 
 所以：
 - 如果贸然取配送中心的几个TSP回路，则必然有更好的解，因为不是所有的配货点都必须等待一次性配送；
-- 如果直接取配货点的最短回路，则不能保证其全局最优性，因为没有考虑到配送点之间的距离。
+- 如果直接取配货点的最短回路，则不能保证其全局最优性，因为没有考虑到配货点之间的距离。
 
 那么我们的算法怎么做？很简单：
-1. 首先求得每个配送中心到所有有订单的配货点的TSP回路；
-2. 选择一个未配送订单，然后选择此订单持有者（配货点）的最近配送中心对应的回路；
-3. 遍历此回路的每个节点，如果节点有更优解（直接到配送中心）或不满足要求，删除此节点；
-4. 将上述路径中的节点所持有的订单标记为已配送；
-5. 回到2，重复，直至所有的订单都已得到配送。
+1. 对所有待配送订单进行排序，让其中的订单按照其持有者到最近配送中心的距离的升序进行排序（贪心选择，从代价最小的订单开始）。
+2. 对已排序的订单进行遍历，依代价由小到大选择未配送的订单，然后求得距离此订单持有者（配货点）最近的配送中心所对应的TSP回路；
+3. 遍历此回路的每个节点，如果节点有更优解（直接到当前节点的最近配送中心的回路更短）或不满足要求（包括无人机最大里程限制、最大携带限制和优先级要求），则在路径中删除此节点；
+4. 如果节点所持有的所有订单都满足条件，则都标记为已配送；否则只将满足条件的订单标记为已配送；
+5. 如果路径中的节点经此路径后其所有订单都被标记为已配送，在可选节点集中删除它（确保其不会被重复选择来构建图）；
+6. 回到2，重复，直至所有的订单都已得到配送。
 
-具体算法设计请见下一小节。因为我们选的是距离配货点最近的配送中心，即在其回路中可以较快遍历到此配货点，可以保证解较优；同时，在遍历回路时，若某节点有更优解，则舍弃路径中的此节点，使其在别的更优回路或是自己对应的最优回路被选择，确保得到更好的解。结束后，算法会输出一系列的路径，其数量小于等于待处理的订单数量。
+求解TSP问题难度较高，但我们可以通过近似算法来求得一个可接受的较优解。因为我们假设问题的场景位于二维欧氏空间，所以节点间的距离必定满足三角不等式，这就可以使用上课提到的最小生成树近似法来求解TSP的较优回路，具体算法设计请见下一小节。因为我们选的是距离配货点最近的配送中心，即在其回路中可以较快遍历到此配货点，可以保证解较优；而且在选择订单前，首先根据订单持有者到最近配送中心的距离来进行排序，贪心选择更优的代价开始算法，减少随机性；同时，在遍历回路时，若某节点有更优解，则舍弃路径中的此节点，使其在别的更优回路或是自己对应的最优回路被选择，确保得到更好的解。结束后，算法会输出一系列的路径，其数量小于等于待处理的订单数量。
 
-关于调度，因为即使是最优的订单都有30分钟的等待时间，而无人机受限于速度和最大距离，最多只能飞20分钟。为了确保每个订单都能送达，我们设每个配货点到配送中心的距离都不大于10km以保证无人机可送达。我们的假定是每30分钟生成一次订单，所以一定可以在下一次生成订单前配送完毕所有优先级最高的订单。那么对于调度的设计就简单了，只需在每个时间片仅处理优先级最高的订单，然后在下一个时间片将上一个时间片的其他优先级的订单优先级集体提高一级即可。最后一个时间片会处理所有的未处理订单。
+关于调度，因为即使是最优的订单都有30分钟的等待时间，而无人机受限于速度和最大距离，最多只能飞20分钟。为了确保每个订单都能送达，我们设每个配货点到配送中心的距离都不大于10km以保证无人机可送达。我们的假定是每30分钟生成一次订单，所以一定可以在下一次生成订单前配送完毕所有优先级最高的订单。那么对于调度的设计就简单了，只需在每个时间片仅处理优先级最高的订单，然后在下一个时间片将上一个时间片的其他优先级订单的优先级集体提高一级即可。最后一个时间片会将所有未处理的订单直接提高到最高优先级进行处理。
 
 ### Design
-首先是通过最小生成树来近似求解最优回路，使用Prim算法：
+首先是对指定配送中心通过最小生成树来近似求解最优回路，使用Prim算法。设构成的图的总节点数为 $n$，则获得最小生成树的时间复杂度是 $O(n^2)$ ，而先序遍历此树的时间复杂度是 $O(n)$ ，所以算法1总的时间复杂度为：
+
+$$ O(n^2)+O(n)=O(n^2). $$
+
 ```
 Algo 1: get loops use MST
 -------------------------
-$senders <- distribution centres 
-$receivers <- distribution points with orders
-$loops = empty
-for $sender in $senders do
-    $graph <- build graph by $sender and $receivers
-    $mst <- Prim($graph) to generate MST, with root $sender
-    $loop <- prior-order traversal $mst
-    $loop.add($sender)
-    $loops.add($loop)
-endfor
-return $loops
+s ← chosen distribution center;
+R ← distribution points that have orders;
+G ← build graph by s and R;
+T ← generate MST by Prim Algorithm, with root s;
+L ← prior-order traversal of T;
+return L
 ```
-以上就通过近似算法求得了每个配送中心对应的最小回路。设每个图的总节点数为n、配送中心数量为m，因为使用Prim算法获得最小生成树的时间复杂度是 $O(n^2)$ ，所以此算法的整体时间复杂度为 $O(mn^2)$ 。
 
-接下来是根据限制条件缩减回路的算法：
+然后是对于每个订单，获得其近似最优配送路径，一条路径可能会处理多个订单。这里会根据具体的限制条件和是否有更好的解来进行路径缩减。
+我们假设系统每批次生成 $k$ 个订单，每个图的总节点数为 $n$。对订单的排序使用快速排序，其时间复杂度为 $O(klogk)$ ，且算法1的时间复杂度为 $O(n^2)$ ，则算法2的总计时间复杂度为：
+
+$$ O(kn^2)+O(kn)+O(klogk)=O(kn^2). $$
+
 ```
 Algo 2: reduce and limit loops
 ------------------------------
-$drone <- drone configs
-$loops <- loops solved by Algo 1
-$orders <- orders to handle
-$paths <- empty
-for $order in $orders do
-    continue if $order is handled
-    $sender <- nearest sender of $order.owner
-    $path <- $loops[$sender]
-    for $x in $path do
-        continue if $x is $sender
-        if $x.order.priority is not satisfied then
-            delete $x
-        endif
-        if distance($x.previous to $x to $sender) > 2 * (distance($x to $x's nearest sender)) then
-            delete $x
-        endif 
-        if distance($x.previous to $x to $sender) > $drone's max fly distance then
-            delete $x
-        endif
-        if $drone.carry == $drone's max carry then
-            delete $x
-        endif
-        set $x.order to handled
+O ← orders to handle;
+P ← path results to output;
+k ← set to 0, count of P;
+Quick Sort O by each O_i’s owner’s distance to nearest distribution center;
+for i in length of O do:
+    continue if O_i is handled;
+    s ← nearest distribution center of O_i’s owner;
+    P_k ← the minimal loop path, using Algorithm 1, with argument s;
+    for p in P_k do:
+    	continue if p is s;
+    	o ← p’s order;
+    	s' ← p’s nearest distribution center;
+    	p^(-1) ← The previous node of p in P_k;
+    	if o’s priority is not satisfied then:
+            delete p from P_k;
+    	endif
+    	if distance(p^(-1) → p → s) > distance(s' → p → s') then:
+            delete p from P_k;
+    	endif
+    	if distance({s → ⋯ → p^(-1)} → p → s) > drone's max fly distance then:
+            delete p from P_k;
+    	endif
+    	if orders’ number until p^(-1) = drone's max carry then:
+            delete p from P_k;
+    	endif
+        if p still in P_k  then:
+            if p’s orders can all be handled then:
+                set all orders of p to handled;
+                remove p from choosing set;
+            else
+                set o to handled;
+            endif
+    	endif
     endfor
-    $paths.add($path)
+    k ← k+1;
 endfor
-return $paths
+return P;
 ```
-以上即可通过约束条件来缩减回路，最后得到一系列较优的解。其中，设系统每批次生成k个订单，每个图总节点数为n，则总的时间复杂度为 $O(kn)$ 。
 
-最后是调度算法：
+经过算法2求解得到的回路可以认为是每一个批次订单的较优配送回路。接着再使用如上所说的简单调度进入接下来的时间片进行操作。
 ```
 Algo 3: schedule
 ----------------
-$list <- list including high, mid and low priority orders
-for $time in time slices do
-    $list <- generate some random orders inner
-    if $time is last time slice do
-        set all orders' priority in $list to high-pri
+LO ← list including high, mid and low priority orders;
+for t in time slices do:
+    LO ← LO with new generated orders;
+    if t is last time slice then:
+        LO_high ← {LO_high,LO_mid,LO_low};
     endif
-    handle orders in $list's high-pri list
-    $list's mid-pri and low-pri priority increase one level
-endfor
+    handle all orders in LO_high using Algorithm 2;
+    LO_high ← LO_mid;
+    LO_mid ← LO_low;
+    LO_low ← {};
+endfor 
 ```
 
 ### Result
