@@ -184,64 +184,63 @@ AdjMat:
 11.3137 7.2111 7.6158 7.2801 5.0990 5.0990 6.3246 5.0000 0.0000 
 ======
 Time slice 1
-[Orders] 8 Mid 6 High 2 High 0 Mid 5 Low 3 Low 
-[High-pri orders] 6 High 2 High 
-[Process queue] 6 High 2 High 
+[New orders] 2-Low 3-Low 5-Low 0-High 6-Mid 8-Low 
+[High-pri orders] 0-High 
+[Process queue] 0-High 
 [Routes and costs]
-        Min cost: 5.6569        Route: [4, 6, 2, 4]
-[Total min cost] 5.6569
+        Min cost: 8.9443        Route: [1, 0, 1]
+[Total min cost] 8.9443
 ======
 Time slice 2
-[Orders] 8 High 6 High 2 Mid 0 Mid 5 Mid 3 Mid 
-[High-pri orders] 8 High 0 High 8 High 6 High 
-[Process queue] 6 High 0 High 8 High 8 High 
+[New orders] 2-High 3-Mid 5-Mid 0-High 6-Mid 8-High 
+[High-pri orders] 6-High 2-High 0-High 8-High 
+[Process queue] 6-High 2-High 0-High 8-High 
 [Routes and costs]
-        Min cost: 2.8284        Route: [4, 6, 4]
-        Min cost: 8.9443        Route: [1, 0, 1]
-        Min cost: 10.0000       Route: [7, 8, 7]
-[Total min cost] 21.7727
-======
-Time slice 3
-[Orders] 8 High 6 Mid 2 Low 0 High 5 High 3 Mid 
-[High-pri orders] 5 High 3 High 2 High 0 High 5 High 3 High 8 High 0 High 5 High 
-[Process queue] 5 High 3 High 5 High 3 High 5 High 2 High 0 High 0 High 8 High 
-[Routes and costs]
-        Min cost: 4.4721        Route: [7, 5, 7]
-        Min cost: 12.7910       Route: [1, 3, 0, 1]
-        Min cost: 15.5432       Route: [4, 2, 8, 4]
-        Min cost: 8.9443        Route: [1, 0, 1]
-[Total min cost] 41.7506
-======
-Time slice 4
-[Orders] 8 Mid 6 High 2 Low 0 Mid 5 High 3 Low 
-[High-pri orders] 6 High 3 High 6 High 5 High 
-[Process queue] 6 High 6 High 3 High 5 High 
-[Routes and costs]
-        Min cost: 2.8284        Route: [4, 6, 4]
-        Min cost: 7.6344        Route: [1, 3, 5, 1]
-[Total min cost] 10.4628
-======
-Time slice 5
-[Orders] 8 Low 6 Low 2 Low 0 High 5 Low 3 Low 
-[High-pri orders] 2 High 8 High 0 High 0 High 
-[Process queue] 2 High 0 High 0 High 8 High 
-[Routes and costs]
-        Min cost: 15.5432       Route: [4, 2, 8, 4]
+        Min cost: 15.5432       Route: [4, 6, 2, 8, 4]
         Min cost: 8.9443        Route: [1, 0, 1]
 [Total min cost] 24.4875
 ======
-Time slice 6
-[Orders] 8 Low 6 Mid 2 Low 0 Low 5 High 3 High 
-[High-pri orders] 2 High 3 High 5 High 3 High 8 High 6 High 2 High 5 High 3 High 6 High 8 High 2 High 0 High 
-[Process queue] 6 High 6 High 3 High 5 High 3 High 5 High 3 High 2 High 2 High 2 High 0 High 8 High 8 High 
+Time slice 3
+[New orders] 2-High 3-Low 5-Low 0-Mid 6-Low 8-High 
+[High-pri orders] 2-High 3-High 5-High 8-High 3-High 5-High 6-High 2-High 8-High 
+[Process queue] 6-High 3-High 5-High 3-High 5-High 2-High 2-High 8-High 8-High 
 [Routes and costs]
         Min cost: 5.6569        Route: [4, 6, 2, 4]
-        Min cost: 4.4721        Route: [1, 3, 1]
+        Min cost: 7.6344        Route: [1, 3, 5, 1]
         Min cost: 12.3351       Route: [7, 5, 8, 7]
+[Total min cost] 25.6264
+======
+Time slice 4
+[New orders] 2-Low 3-High 5-Mid 0-High 6-Mid 8-Mid 
+[High-pri orders] 0-High 3-High 0-High 
+[Process queue] 3-High 0-High 0-High 
+[Routes and costs]
+        Min cost: 12.7910       Route: [1, 3, 0, 1]
+[Total min cost] 12.7910
+======
+Time slice 5
+[New orders] 2-Low 3-High 5-Low 0-High 6-Low 8-Mid 
+[High-pri orders] 3-High 5-High 6-High 5-High 6-High 8-High 3-High 0-High 
+[Process queue] 6-High 6-High 3-High 5-High 5-High 3-High 0-High 8-High 
+[Routes and costs]
+        Min cost: 2.8284        Route: [4, 6, 4]
+        Min cost: 7.6344        Route: [1, 3, 5, 1]
+        Min cost: 12.3351       Route: [7, 5, 8, 7]
+        Min cost: 8.9443        Route: [1, 0, 1]
+[Total min cost] 31.7422
+======
+Time slice 6
+[New orders] 2-High 3-High 5-Low 0-Low 6-Low 8-High 
+[High-pri orders] 2-High 8-High 2-High 3-High 8-High 2-High 5-High 6-High 5-High 0-High 6-High 
+[Process queue] 6-High 6-High 3-High 5-High 5-High 2-High 2-High 2-High 0-High 8-High 8-High 
+[Routes and costs]
+        Min cost: 5.6569        Route: [4, 6, 2, 4]
+        Min cost: 7.6344        Route: [1, 3, 5, 1]
         Min cost: 15.5432       Route: [4, 2, 8, 4]
         Min cost: 8.9443        Route: [1, 0, 1]
-[Total min cost] 46.9516
+        Min cost: 10.0000       Route: [7, 8, 7]
+[Total min cost] 47.7788
 ======
-[Overall cost] 151.0820
+[Overall cost] 151.3700
 ```
 
